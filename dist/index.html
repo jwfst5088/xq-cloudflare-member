@@ -1233,6 +1233,7 @@ if(aiCl==='red'&&!engine.gameOver){startAiThink();}
 }
 
 function doMove(fr,fc,tr,tc){
+if(window._xqSpectator)return;
 var rs=engine.move(fr,fc,tr,tc);
 if(!rs)return;
 var mc=engine.moveHistory[engine.moveHistory.length-1].piece.color;
@@ -1344,6 +1345,7 @@ capRed=[];capBlk=[];lastMove=null;selected=null;validMoves=[];gameStarted=true;c
 D('turnText').textContent='红方走棋';drawBoardBg();render();startTimer();sndStart();}
 
 function doResign(){
+if(window._xqSpectator)return;
 if(!gameStarted||engine.gameOver)return;
 showOverlay('<h2>确认认输?</h2><p>认输后对方获胜</p><div class="btns2"><button class="btn btn-red" style="width:auto;padding:10px 20px;font-size:14px" onclick="confirmResign()">确认</button><button class="btn btn-outline" style="width:auto;padding:10px 20px;font-size:14px" onclick="hideOverlay()">取消</button></div>');
 }
@@ -1358,6 +1360,7 @@ function rejDraw(){hideOverlay();if(sockOk)socket.emit('reject_draw');}
 function acceptRematch(){socket.emit('accept_rematch');}
 
 function doUndo(){
+if(window._xqSpectator)return;
 if(!gameStarted||engine.gameOver)return;
 if(undoUsed){toast('不能连续悔棋',1500);return;}
 if(engine.moveHistory.length===0){toast('没有可悔的棋步',1500);return;}
@@ -1414,7 +1417,7 @@ try{if(document.getElementById('rvPanel')&&typeof closeReview==='function')close
 soundEnabled=false;gameOverSoundPlayed=false;
 if(audioCtx){try{audioCtx.close();}catch(e){}audioCtx=null;}
 stopTimer();stopAi();gameStarted=false;selected=null;validMoves=[];capRed=[];capBlk=[];lastMove=null;engine.initBoard();
-gm='local';myCl=null;myRm=null;boardFlip=false;D('drawBtn').style.display='none';
+gm='local';myCl=null;myRm=null;boardFlip=false;window._xqSpectator=false;D('drawBtn').style.display='none';
 D('game').classList.remove('show');D('lobby').classList.remove('hide');
 D('redName').textContent='红方';D('blackName').textContent='黑方';
 D('lobbyStatus').textContent=sockOk?'● 服务器已连接':'○ 服务器离线（本地模式可用）';hideOverlay();hideReconnecting();
@@ -1431,7 +1434,7 @@ if(audioCtx){try{audioCtx.close();}catch(e){}audioCtx=null;}
 stopTimer();stopAi();gameStarted=false;selected=null;validMoves=[];capRed=[];capBlk=[];lastMove=null;engine.initBoard();
 if(gm==='online'&&sockOk){try{socket.emit('leave_room');}catch(e){}}
 if(socket){try{socket.disconnect();}catch(e){}socket=null;sockOk=false;}
-gm='local';myCl=null;myRm=null;boardFlip=false;D('drawBtn').style.display='none';
+gm='local';myCl=null;myRm=null;boardFlip=false;window._xqSpectator=false;D('drawBtn').style.display='none';
 D('game').classList.remove('show');D('lobby').classList.remove('hide');
 D('redName').textContent='红方';D('blackName').textContent='黑方';
 D('lobbyStatus').textContent='○ 服务器离线（本地模式可用）';hideOverlay();hideReconnecting();
@@ -1448,7 +1451,7 @@ if(audioCtx){try{audioCtx.close();}catch(e){}audioCtx=null;}
 stopTimer();stopAi();gameStarted=false;selected=null;validMoves=[];capRed=[];capBlk=[];lastMove=null;engine.initBoard();
 if(gm==='online'&&sockOk){try{socket.emit('leave_room');}catch(e){}}
 if(socket){try{socket.disconnect();}catch(e){}socket=null;sockOk=false;}
-gm='local';myCl=null;myRm=null;boardFlip=false;D('drawBtn').style.display='none';
+gm='local';myCl=null;myRm=null;boardFlip=false;window._xqSpectator=false;D('drawBtn').style.display='none';
 D('game').classList.remove('show');D('lobby').classList.remove('hide');
 D('redName').textContent='红方';D('blackName').textContent='黑方';
 D('lobbyStatus').textContent='○ 服务器离线（本地模式可用）';hideOverlay();hideReconnecting();
@@ -1457,6 +1460,7 @@ connectSocket();
 }
 
 function cellClick(r,c){
+if(window._xqSpectator)return;
 clickCount++;
 if(!gameStarted||engine.gameOver)return;
 if(aiThinking)return;
@@ -1557,9 +1561,10 @@ try{localStorage.removeItem('xq_game');}catch(e){}
 myRm=d.roomId;myCl=d.color;gm='online';D('lobbyStatus').textContent='';
 try{localStorage.setItem('xq_last_color',d.color);}catch(e){} // 记录本盘颜色，下一盘轮换先手
 enterOnlineGame(d.roomId,d.color);
-});
+});socket.on('spectator_joined',function(d){try{window._xqSpectator=true;myRm=d.roomId;myCl=null;gm='online';D('lobbyStatus').textContent='';enterSpectatorGame(d.roomId);syncSpectator(d);}catch(e){}});socket.on('room_state',function(d){try{if(window._xqSpectator&&d&&d.moveHistory)syncSpectator(d);}catch(e){}});
 socket.on('game_start',function(d){
 window._xqGhostGuard=false;
+if(window._xqSpectator){D('turnText').textContent='👁 观战中 · 对局进行中';return;}
 gameStarted=true;D('turnText').textContent=engine.currentTurn==='red'?'红方走棋':'黑方走棋';
 updateBoardSize();drawBoardBg();render();
 toast('对手已加入，对局开始!',2000);startTimer();
@@ -1625,9 +1630,9 @@ selected=null;validMoves=[];lastMove={row:d.toRow,col:d.toCol};
 if(cs===0)drawBoardBg();
 render();
 D('turnText').textContent=engine.currentTurn==='red'?'红方走棋':'黑方走棋';
-if(d.gameOver){sndGameOver();stopTimer();engine.gameOver=true;engine.winner=d.winner;showGameOver(d.winner==='red'?'红方':'黑方');}
+if(d.gameOver){sndGameOver();stopTimer();engine.gameOver=true;engine.winner=d.winner;if(window._xqSpectator){D('turnText').textContent='👁 观战中 · 对局结束';}else{showGameOver(d.winner==='red'?'红方':'黑方');}}
 else if(engine.iic&&engine.iic(engine.currentTurn))sndCheck();
-saveGameState();
+if(!window._xqSpectator)saveGameState();
 }
 });
 socket.on('game_over',function(d){
@@ -1832,7 +1837,7 @@ hideReconnecting();
 if(window._dcTimer){clearInterval(window._dcTimer);window._dcTimer=null;}
 stopTimer();stopAi();gameStarted=false;selected=null;validMoves=[];capRed=[];capBlk=[];lastMove=null;engine.initBoard();
 if(socket){try{socket.disconnect();}catch(e){}socket=null;sockOk=false;}
-gm='local';myCl=null;myRm=null;boardFlip=false;D('drawBtn').style.display='none';
+gm='local';myCl=null;myRm=null;boardFlip=false;window._xqSpectator=false;D('drawBtn').style.display='none';
 D('game').classList.remove('show');D('lobby').classList.remove('hide');
 D('redName').textContent='红方';D('blackName').textContent='黑方';
 D('lobbyStatus').textContent='';hideOverlay();
@@ -1856,6 +1861,8 @@ updateBoardSize();drawBoardBg();render();
 });
 }
 
+function enterSpectatorGame(rid){window._xqSpectator=true;gameOverSoundPlayed=false;undoUsed=false;boardFlip=false;D('lobby').classList.add('hide');D('game').classList.add('show');D('modeBadge').textContent='👁 观战 · 房间 '+rid;engine.initBoard();engine.currentTurn='red';engine.gameOver=false;engine.winner=null;engine.moveHistory=[];capRed=[];capBlk=[];lastMove=null;selected=null;validMoves=[];gameStarted=true;clickCount=0;pendingMove=null;D('turnText').textContent='👁 观战中 · 加载局面...';D('redName').textContent='红方';D('blackName').textContent='黑方';D('drawBtn').style.display='none';hideOverlay();try{stopTimer();}catch(e0){}requestAnimationFrame(function(){updateBoardSize();drawBoardBg();render();});}
+function syncSpectator(d){try{if(!d||!d.moveHistory)return;if(d.moveHistory.length<engine.moveHistory.length){engine.initBoard();engine.currentTurn='red';engine.gameOver=false;engine.winner=null;engine.moveHistory=[];capRed=[];capBlk=[];lastMove=null;}while(engine.moveHistory.length<d.moveHistory.length){var m0=d.moveHistory[engine.moveHistory.length];var mv=engine.move(m0.fromRow,m0.fromCol,m0.toRow,m0.toCol);if(!mv)break;if(mv.captured){if(mv.captured.color==='red')capRed.push(mv.captured);else capBlk.push(mv.captured);}lastMove={row:m0.toRow,col:m0.toCol};}if(d.redLeft!==undefined){redLeft=d.redLeft;blkLeft=d.blkLeft;try{updateTimers();}catch(eT){}}if(d.currentTurn){engine.currentTurn=d.currentTurn;}engine.gameOver=!!d.gameOver;engine.winner=d.winner||null;gameStarted=true;selected=null;validMoves=[];render();var st='';if(engine.gameOver){st=d.winner==='red'?'红方胜':d.winner==='black'?'黑方胜':'和棋';}else{st=engine.currentTurn==='red'?'红方走棋':'黑方走棋';}D('turnText').textContent='👁 观战中 · '+st;}catch(e){}}
 function startOnline(rid,cl){enterOnlineGame(rid,cl);}
 
 
@@ -6942,6 +6949,54 @@ document.addEventListener('pointermove',dm,true);
 document.addEventListener('pointerup',de,true);
 document.addEventListener('pointercancel',de,true);
 })();})();
+</script>
+<script>
+(function(){
+function st(id){return document.getElementById(id);}
+function vipId(){try{var a=localStorage.getItem('xq_account');if(a)return 'acc:'+a;}catch(e){}try{return 'dev:'+(localStorage.getItem('xq_device_id')||'');}catch(e){return 'dev:';}}
+function vipApi(p,o){o=o||{};o.headers=Object.assign({'Content-Type':'application/json'},o.headers||{});return fetch(p,o).then(function(r){return r.json();});}
+window.vipId=vipId;window.vipApi=vipApi;
+if(!document.getElementById('vipStyle')){var vs=document.createElement('style');vs.id='vipStyle';
+vs.textContent='.xqVipBadge{display:inline-flex;align-items:center;padding:3px 12px;border-radius:999px;font-size:12px;font-weight:900;letter-spacing:2px;color:#3d2117;background:linear-gradient(135deg,#ffe9a8,#f5c542 45%,#d4a017);box-shadow:0 0 12px rgba(245,197,66,.55),inset 0 1px 0 rgba(255,255,255,.75);border:1px solid #b8860b;text-shadow:0 1px 0 rgba(255,255,255,.4);vertical-align:middle;margin-left:8px}#vipOverlay{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:99990}#vipCard{width:min(92vw,420px);max-height:86vh;overflow:auto;background:linear-gradient(160deg,#2c1810,#1a0f0a);border:1px solid #d4a843;border-radius:16px;padding:22px 20px;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.6)}#vipCard h3{margin:0 0 6px;color:#f5c542;font-size:20px;letter-spacing:3px}.vipStatus{margin:14px 0;padding:14px;border-radius:12px;font-size:14px;line-height:1.8}.vipStatus.member{background:linear-gradient(135deg,#3d2f10,#2c1810);border:1px solid #f5c542;color:#ffe9a8}.vipStatus.free{background:#241208;border:1px solid #5a3a28;color:#c4a882}.vipStatus b{color:#f5c542}.vipRedeem{display:flex;gap:8px;margin-top:6px}.vipRedeem input{flex:1;background:#2c1810;border:1px solid #5a3a28;color:#f0e6d3;border-radius:10px;padding:11px 12px;outline:none;font-size:14px;letter-spacing:1px;min-width:0}.vipRedeem input:focus{border-color:#d4a843}.vipBtn{border:none;border-radius:10px;padding:11px 18px;font-weight:900;cursor:pointer;letter-spacing:1px;color:#3d2117;background:linear-gradient(135deg,#ffe9a8,#f5c542,#d4a017);box-shadow:0 4px 14px rgba(245,197,66,.4);white-space:nowrap}.vipBtn:active{transform:scale(.96)}.vipMut{font-size:12px;color:#8b7355;margin-top:10px;line-height:1.7}';
+document.head.appendChild(vs);}
+function renderVipBadge(){try{var box=st('profileBox');if(!box)return;var b=st('xqVipBadge');var vip=window._xqVip&&window._xqVip.member;if(!vip){if(b)b.remove();return;}if(!b){b=document.createElement('span');b.id='xqVipBadge';b.className='xqVipBadge';b.textContent='👑 尊享会员';var t=st('pfTitle');if(t&&t.parentNode)t.parentNode.insertBefore(b,t.nextSibling);else box.appendChild(b);}}catch(e){}}
+window.renderVipBadge=renderVipBadge;
+function fillVip(){var box=st('vipStatusBox');if(!box)return;var v=window._xqVip;
+if(v&&v.member){box.className='vipStatus member';box.innerHTML='<div style="font-size:17px;font-weight:900;letter-spacing:2px">👑 尊享会员</div><div>有效期至 <b>'+(v.expiresAt?new Date(v.expiresAt).toLocaleDateString('zh-CN'):'-')+'</b></div><div>复盘分析 · 无限畅用</div>';}
+else{var rem=(v&&typeof v.remaining==='number')?v.remaining:3;var used=(v&&typeof v.used==='number')?v.used:0;box.className='vipStatus free';box.innerHTML='<div>当前身份：普通用户</div><div>今日免费复盘剩余 <b>'+rem+'/3</b> 次'+(used>0?'（已用 '+used+' 次）':'')+'</div><div style="margin-top:4px">开通会员，复盘无限畅用</div>';}}
+function refreshVip(){try{vipApi('/api/vip/status?id='+encodeURIComponent(vipId())).then(function(s2){if(s2){window._xqVip=s2;renderVipBadge();var ov=st('vipOverlay');if(ov&&ov.style.display==='flex')fillVip();}}).catch(function(){});}catch(e){}}
+window.refreshVip=refreshVip;
+function ensureVipDom(){if(st('vipOverlay'))return;var ov=document.createElement('div');ov.id='vipOverlay';
+ov.innerHTML='<div id="vipCard"><h3>👑 会员中心</h3><div id="vipStatusBox" class="vipStatus free">加载中...</div><div class="vipRedeem"><input id="vipCodeInput" placeholder="输入会员兑换码" maxlength="24" autocomplete="off"><button class="vipBtn" id="vipRedeemBtn">立即开通</button></div><div id="vipMsg" style="min-height:20px;font-size:13px;margin-top:8px;color:#e74c3c"></div><div class="vipMut">会员权益：复盘分析无限畅用<br>未开通会员每日可免费复盘 3 次 · 观战模式不支持复盘</div><div style="margin-top:14px"><button class="btn btn-outline" style="padding:9px 22px" id="vipCloseBtn">关 闭</button></div></div>';
+document.body.appendChild(ov);
+st('vipCloseBtn').onclick=function(){ov.style.display='none';};
+ov.addEventListener('click',function(e){if(e.target===ov)ov.style.display='none';});
+st('vipRedeemBtn').onclick=function(){var inp=st('vipCodeInput');var code=(inp.value||'').trim();var msg=st('vipMsg');if(!code){msg.textContent='请输入兑换码';return;}
+var btn=st('vipRedeemBtn');btn.disabled=true;btn.textContent='开通中...';
+vipApi('/api/vip/redeem',{method:'POST',body:JSON.stringify({id:vipId(),code:code})}).then(function(r){btn.disabled=false;btn.textContent='立即开通';
+if(r&&r.ok){msg.style.color='#2ecc71';msg.textContent='🎉 开通成功！';inp.value='';refreshVip();setTimeout(function(){ov.style.display='none';},900);}
+else{msg.style.color='#e74c3c';msg.textContent=(r&&r.error)||'兑换失败';}}).catch(function(){btn.disabled=false;btn.textContent='立即开通';msg.style.color='#e74c3c';msg.textContent='网络异常,请稍后再试';});};}
+window.openVipModal=function(){ensureVipDom();var ov=st('vipOverlay');ov.style.display='flex';st('vipMsg').textContent='';refreshVip();setTimeout(function(){var ii=st('vipCodeInput');if(ii)ii.focus();},80);};
+function addLobbyEntry(){try{var lobby=st('lobby');if(!lobby||st('vipEntryBtn'))return;var mc=lobby.querySelector('.mode-cards');if(!mc)return;var row=document.createElement('div');row.style.cssText='display:flex;justify-content:center;width:100%';var b=document.createElement('button');b.id='vipEntryBtn';b.className='btn btn-outline';b.style.cssText='width:auto;flex-shrink:0;padding:10px 26px;font-size:14px';b.textContent='👑 会员中心';b.onclick=function(){openVipModal();};row.appendChild(b);mc.parentNode.insertBefore(row,mc.nextSibling);}catch(e){}}
+function gateReview(){try{var _core=window.openReview;if(typeof _core!=='function')return;
+window._rvCore=_core;
+window.openReview=function(snap){try{
+ if(window._xqSpectator){try{toast('观战模式不支持复盘',2500);}catch(e0){window._rvGateErr='e0:'+e0.message;}return;}
+ var id=vipId();
+ vipApi('/api/vip/status?id='+encodeURIComponent(id)).then(function(s3){
+  if(s3&&s3.member){try{_core(snap);}catch(e1){window._rvGateErr='e1:'+e1.message;}return;}
+  var rem=(s3&&typeof s3.remaining==='number')?s3.remaining:0;
+  if(rem<=0){try{toast('今日免费复盘已用完(3/3)，开通会员无限复盘',3200);}catch(e2){window._rvGateErr='e2:'+e2.message;}try{openVipModal();}catch(e3){window._rvGateErr='e3:'+e3.message;}return;}
+  vipApi('/api/vip/consume',{method:'POST',body:JSON.stringify({id:id})}).then(function(c){
+   if(c&&c.ok){try{window._xqVip=c;renderVipBadge();}catch(e4){window._rvGateErr='e4:'+e4.message;}try{_core(snap);}catch(e5){window._rvGateErr='e5:'+e5.message;}try{if(!c.member)toast('今日免费复盘剩余 '+c.remaining+' 次',2500);}catch(e6){window._rvGateErr='e6:'+e6.message;}}
+   else{try{toast('今日免费复盘已用完(3/3)，开通会员无限复盘',3200);}catch(e7){window._rvGateErr='e7:'+e7.message;}try{openVipModal();}catch(e8){window._rvGateErr='e8:'+e8.message;}}
+  }).catch(function(){try{_core(snap);}catch(e9){window._rvGateErr='e9:'+e9.message;}});
+ }).catch(function(){try{_core(snap);}catch(ea){window._rvGateErr='ea:'+ea.message;}});
+}catch(e){try{_core(snap);}catch(eb){window._rvGateErr='eb:'+eb.message;}}};
+}catch(e){}}
+function boot(){addLobbyEntry();gateReview();refreshVip();}
+if(document.readyState==='complete'||document.readyState==='interactive')setTimeout(boot,300);else window.addEventListener('DOMContentLoaded',function(){setTimeout(boot,300);});
+})();
 </script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"0a4ff2af697e451c85fdf620787d507c","r":1}' crossorigin="anonymous"></script>
 </body>
