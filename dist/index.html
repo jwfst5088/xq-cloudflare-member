@@ -6980,19 +6980,27 @@ window.openVipModal=function(){ensureVipDom();var ov=st('vipOverlay');ov.style.d
 function addLobbyEntry(){try{var lobby=st('lobby');if(!lobby||st('vipEntryBtn'))return;var mc=lobby.querySelector('.mode-cards');if(!mc)return;var row=document.createElement('div');row.style.cssText='display:flex;justify-content:center;width:100%';var b=document.createElement('button');b.id='vipEntryBtn';b.className='btn btn-outline';b.style.cssText='width:auto;flex-shrink:0;padding:10px 26px;font-size:14px';b.textContent='👑 会员中心';b.onclick=function(){openVipModal();};row.appendChild(b);mc.parentNode.insertBefore(row,mc.nextSibling);}catch(e){}}
 function gateReview(){try{var _core=window.openReview;if(typeof _core!=='function')return;
 window._rvCore=_core;
+var gateBusy=false;var lastPay={key:'',ts:0};
+var snapKey=function(s){try{if(!s||!s.moves||!s.moves.length)return '';var m=s.moves;return m.length+'|'+JSON.stringify(m[0])+'|'+JSON.stringify(m[m.length-1])+'|'+(s.myCl||'')+'|'+(s.gm||'');}catch(e){return '';}};
 window.openReview=function(snap){try{
- if(window._xqSpectator){try{toast('观战模式不支持复盘',2500);}catch(e0){window._rvGateErr='e0:'+e0.message;}return;}
- var id=vipId();
- vipApi('/api/vip/status?id='+encodeURIComponent(id)).then(function(s3){
-  if(s3&&s3.member){try{_core(snap);}catch(e1){window._rvGateErr='e1:'+e1.message;}return;}
+ if(window._xqSpectator){try{toast('观战模式不支持复盘',2500);}catch(e0){}return;}
+ var eff=snap||window._reviewSnapshot;
+ var key=snapKey(eff);
+ if(key&&key===lastPay.key&&Date.now()-lastPay.ts<600000){try{_core(snap);}catch(eS){}return;}
+ if(gateBusy){try{toast('复盘正在打开…',1500);}catch(eG){}return;}
+ gateBusy=true;
+ try{toast('正在打开复盘…',1800);}catch(eF){}
+ var vipId2=vipId;
+ vipApi('/api/vip/status?id='+encodeURIComponent(vipId2())).then(function(s3){
+  if(s3&&s3.member){try{_core(snap);}catch(e1){window._rvGateErr='e1:'+e1.message;}gateBusy=false;return;}
   var rem=(s3&&typeof s3.remaining==='number')?s3.remaining:0;
-  if(rem<=0){try{toast('今日免费复盘已用完(3/3)，开通会员无限复盘',3200);}catch(e2){window._rvGateErr='e2:'+e2.message;}try{openVipModal();}catch(e3){window._rvGateErr='e3:'+e3.message;}return;}
-  vipApi('/api/vip/consume',{method:'POST',body:JSON.stringify({id:id})}).then(function(c){
-   if(c&&c.ok){try{window._xqVip=c;renderVipBadge();}catch(e4){window._rvGateErr='e4:'+e4.message;}try{_core(snap);}catch(e5){window._rvGateErr='e5:'+e5.message;}try{if(!c.member)toast('今日免费复盘剩余 '+c.remaining+' 次',2500);}catch(e6){window._rvGateErr='e6:'+e6.message;}}
-   else{try{toast('今日免费复盘已用完(3/3)，开通会员无限复盘',3200);}catch(e7){window._rvGateErr='e7:'+e7.message;}try{openVipModal();}catch(e8){window._rvGateErr='e8:'+e8.message;}}
-  }).catch(function(){try{_core(snap);}catch(e9){window._rvGateErr='e9:'+e9.message;}});
- }).catch(function(){try{_core(snap);}catch(ea){window._rvGateErr='ea:'+ea.message;}});
-}catch(e){try{_core(snap);}catch(eb){window._rvGateErr='eb:'+eb.message;}}};
+  if(rem<=0){gateBusy=false;try{toast('今日免费复盘已用完(3/3)，开通会员无限复盘',3200);}catch(e2){window._rvGateErr='e2:'+e2.message;}try{openVipModal();}catch(e3){window._rvGateErr='e3:'+e3.message;}return;}
+  vipApi('/api/vip/consume',{method:'POST',body:JSON.stringify({id:vipId2()})}).then(function(c){
+   if(c&&c.ok){if(key)lastPay={key:key,ts:Date.now()};try{window._xqVip=c;renderVipBadge();}catch(e4){window._rvGateErr='e4:'+e4.message;}try{_core(snap);}catch(e5){window._rvGateErr='e5:'+e5.message;}gateBusy=false;try{if(!c.member)toast('今日免费复盘剩余 '+c.remaining+' 次',2500);}catch(e6){window._rvGateErr='e6:'+e6.message;}}
+   else{gateBusy=false;try{toast('今日免费复盘已用完(3/3)，开通会员无限复盘',3200);}catch(e7){window._rvGateErr='e7:'+e7.message;}try{openVipModal();}catch(e8){window._rvGateErr='e8:'+e8.message;}}
+  }).catch(function(){try{_core(snap);}catch(e9){window._rvGateErr='e9:'+e9.message;}gateBusy=false;});
+ }).catch(function(){try{_core(snap);}catch(ea){window._rvGateErr='ea:'+ea.message;}gateBusy=false;});
+}catch(e){gateBusy=false;try{_core(snap);}catch(eb){window._rvGateErr='eb:'+eb.message;}}};
 }catch(e){}}
 function boot(){addLobbyEntry();gateReview();refreshVip();}
 if(document.readyState==='complete'||document.readyState==='interactive')setTimeout(boot,300);else window.addEventListener('DOMContentLoaded',function(){setTimeout(boot,300);});
