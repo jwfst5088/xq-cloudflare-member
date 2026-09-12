@@ -6738,6 +6738,7 @@ var rev=new CE();rev.initBoard();
 for(var i=0;i<n&&i<moves.length;i++){var m=moves[i];try{rev.move(m.fromRow,m.fromCol,m.toRow,m.toCol);}catch(e){}}
 return rev;
 }
+function _buildEngineCap(n,moves){var rev=new CE();rev.initBoard();var cap=null;for(var i2=0;i2<n&&i2<moves.length;i2++){var m2=moves[i2];try{var rs=rev.move(m2.fromRow,m2.fromCol,m2.toRow,m2.toCol);if(rs&&rs.captured&&i2===n-1)cap=rs.captured;}catch(e2){}}return {eng:rev,cap:cap};}
 function scoreToRedWin(sc,turn){
 if(!sc)return null;
 if(sc.type==='mate'){return turn==='red'?(sc.value>0?100:0):(sc.value>0?0:100);}
@@ -6846,7 +6847,7 @@ d.style.width=(rcs*0.86)+'px';d.style.height=(rcs*0.86)+'px';d.style.fontSize=(r
 d.textContent=PN[p.type][p.color];
 d.setAttribute('data-r',r2);d.setAttribute('data-c',c2);
 el.appendChild(d);}
-if(window._rvSb&&window._rvSb.on)window._rvSbRender(ps,rcs,w,fl);
+if(window._rvSb&&window._rvSb.on)window._rvSbRender(ps,rcs,w,fl);else{if(!document.getElementById('capBadgeStyle')){var _cgs=document.createElement('style');_cgs.id='capBadgeStyle';_cgs.textContent='.rv-cap-badge{position:absolute;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ff6b6b,#c0392b);color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(231,76,60,.85),0 1px 3px rgba(0,0,0,.5);pointer-events:none;z-index:6;border:1.5px solid #fff;line-height:1}.rv-cap-badge::after{content:""}';document.head.appendChild(_cgs);}var _capD=window._rvCaptured;if(_capD){var _rrC=fl?9-_capD.row:_capD.row;var _xC=ps+_capD.col*rcs,_yC=ps+_rrC*(bh/9);var _g=document.createElement('div');_g.className='rv-cap-badge';var _bs=Math.max(16,rcs*0.42);_g.style.width=_bs+'px';_g.style.height=_bs+'px';_g.style.fontSize=(_bs*0.58)+'px';_g.style.left=(_xC-_bs*0.3)+'px';_g.style.top=(_yC-_bs*0.3)+'px';_g.textContent='✕';el.appendChild(_g);}}
 }catch(e){}
 };window._rvMerged=function(){
 try{var out=[];var srv=[];try{srv=window._histSrv||[]}catch(e0){}
@@ -6869,7 +6870,7 @@ if(idx<0){toast('已经是最早一局');return;}
 if(idx>list.length-1){toast('已经是最近一局');return;}
 window._rvMIdx=idx;
 var it=list[idx];
-window._rvPlies=null;window._rvIdx=-1;window._rvEngine=null;window._rvLastMove=null;
+window._rvPlies=null;window._rvIdx=-1;window._rvEngine=null;window._rvLastMove=null;window._rvCaptured=null;
 if(it.srv){
 var meta=it.srv;
 window._xqRenderRvBoard();
@@ -6893,14 +6894,14 @@ window._rvEngine=buildEngineToPly(Math.min(i+1,snap.moves.length),snap.moves);
  window._rvEngine.gameOver=true;
  if(!window._rvSavedEngine)window._rvSavedEngine=engine;
  var m=snap.moves[i];
- window._rvLastMove={row:m.toRow,col:m.toCol};
+ window._rvLastMove={row:m.toRow,col:m.toCol};try{var _bc=_buildEngineCap(Math.min(i+1,snap.moves.length),snap.moves);window._rvCaptured=(_bc&&_bc.cap)?{row:m.toRow,col:m.toCol,type:_bc.cap.type,color:_bc.cap.color}:null;}catch(eC){window._rvCaptured=null;}
  window._xqRenderRvBoard();
 if(typeof D==='function'&&D('turnText'))D('turnText').textContent='📋 复盘 · 第'+(i+1)+'手';
 var p=plies[i];var d=$id('rvDetail');if(!d)return;
 var w=p?scoreToRedWin(p.score,p.turn):null;
 var wTxt=(w==null)?'评估不可用':'红方胜率 '+w.toFixed(0)+'%';
 var dropTxt=(p&&p.drop!==undefined&&p.drop>=25)?(' · <span style="color:'+(p.drop>=45?'#e74c3c':'#f39c12')+'">此步失分 '+p.drop.toFixed(0)+'</span>'):'';
-d.innerHTML='第'+(i+1)+'手（'+(p&&p.turn==='red'?'红':'黑')+'方走后）· '+wTxt+dropTxt;
+var _capTxt=(window._rvCaptured)?(' · <span style="color:#e74c3c;font-weight:700">吃 '+(typeof PN!=='undefined'&&PN[window._rvCaptured.type]?PN[window._rvCaptured.type][window._rvCaptured.color]:'子')+'</span>'):'';d.innerHTML='第'+(i+1)+'手（'+(p&&p.turn==='red'?'红':'黑')+'方走后）· '+wTxt+dropTxt+_capTxt;
 };
 window.rvStep=function(dir){
 try{if(window._rvSb)window._rvSbExit();}catch(e0){}
